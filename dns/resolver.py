@@ -39,6 +39,7 @@ import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
 import dns.reversename
+import dns.tsig
 
 if sys.platform == 'win32':
     import _winreg
@@ -95,7 +96,7 @@ class NoNameservers(dns.exception.DNSException):
     def _fmt_kwargs(self, **kwargs):
         srv_msgs = []
         for err in kwargs['errors']:
-            srv_msgs.append('Server %s %s port %s anwered %s' % (err[0],
+            srv_msgs.append('Server %s %s port %s answered %s' % (err[0],
                             'TCP' if err[1] else 'UDP', err[2], err[3]))
         return super(NoNameservers, self)._fmt_kwargs(
             query=kwargs['request'].question, errors='; '.join(srv_msgs))
@@ -562,8 +563,11 @@ class Resolver(object):
                 if len(l) == 0 or l[0] == '#' or l[0] == ';':
                     continue
                 tokens = l.split()
-                if len(tokens) == 0:
+
+                # Any line containing less than 2 tokens is malformed
+                if len(tokens) < 2:
                     continue
+
                 if tokens[0] == 'nameserver':
                     self.nameservers.append(tokens[1])
                 elif tokens[0] == 'domain':
